@@ -1,0 +1,29 @@
+{
+  "name": "kolirc",
+  "preferGlobal": true,
+  "version": "0.0.1",
+  "author": "Noah Kantrowitz <noah@coderanger.net>",
+  "description": "Connect to Kingdom of Loathing chat from an IRC client",
+  "license": "MIT",
+  "main": "./lib/server",
+  "bin": {
+    "kolirc": "./bin/kolirc"
+  },
+  "scripts": {
+    "start": "node ./bin/kolirc.js",
+    "test": "vows --spec --isolate"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/coderanger/kolirc.git"
+  },
+  "dependencies": {
+    "coffee-script": "~1.6.3",
+    "carrier": "~0.2.0",
+    "request": "~2.27.0",
+    "q": "~0.9.6",
+    "coffee-script-mapped": "~0.1.4",
+    "underscore": "~1.5.1",
+    "moment": "~2.1.0"
+  }
+}
