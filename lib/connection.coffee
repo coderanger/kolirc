@@ -39,16 +39,8 @@ module.exports = class Connection
       prefix = @server.host
     if prefix
       args.unshift(':'+prefix)
-    lastArg = args.pop()
-    msg = args.join(' ') + ' '
-    if msg.length > 510 # 512 - \r\n
-      throw "Message base '#{msg}' too long"
-    neededLines = Math.ceil(lastArg.length / (510 - msg.length))
     dfd = Q.defer()
-    while neededLines > 0
-      neededLines--
-      # Only setup the defered on the last one. This could bite me if the kernel buffers fill up.
-      @stream.write(args.join(' ') + '\r\n', if neededLines == 0 then dfd.resolve.bind(dfd))
+    @stream.write(args.join(' ') + '\r\n', dfd.resolve.bind(dfd))
     dfd.promise
 
   notice: (msg) ->
