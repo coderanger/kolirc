@@ -2,6 +2,7 @@ carrier = require('carrier')
 Q = require('q')
 _ = require('underscore')
 
+Channel = require('./channel')
 KolClient = require('./kol')
 
 module.exports = class Connection
