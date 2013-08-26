@@ -1,4 +1,6 @@
 crypto = require('crypto')
+querystring = require('querystring')
+
 Q = require('q')
 
 request = require('./request')
@@ -44,6 +46,29 @@ module.exports = class KolClient
           waitTime = 15
         else
           throw 'Unknown login failure'
-        @conn.notice("Waiting #{waitTime} and then trying again")
+        @conn.notice("Waiting #{waitTime} minute(s) and then trying again")
           .then -> Q.delay(waitTime*60*1000)
           .then -> @login(username, password)
+
+  api: (what = 'status', count, id, since) ->
+    data = {what: what, for: 'KoLIRC by coderanger'}
+    data.count = count if count
+    data.id = id if id
+    data.since = since if since
+    request.get({url: "#{@urlBase}api.php?#{querystring.stringify(data)}", jar: @jar})
+      .then ([response, body]) ->
+        throw 'Nightly maintenance' if response.request.path == '/maint.php'
+        JSON.parse(body)
+
+  newChatMessages: (since = 0) ->
+    request.get({url: "#{@urlBase}newchatmessages.php?j=1&lasttime=#{since}", jar: @jar})
+      .then ([response, body]) ->
+        throw 'Nightly maintenance' if response.request.path == '/maint.php'
+        JSON.parse(body)
+
+  submitNewChat: (playerId, pwd, msg) ->
+    data = {j: '1', playerid: playerId, pwd: pwd, graf: msg}
+    request.get({url: "#{@urlBase}submitnewchat.php?#{querystring.stringify(data)}", jar: @jar})
+      .then ([response, body]) ->
+        throw 'Nightly maintenance' if response.request.path == '/maint.php'
+        JSON.parse(body)
