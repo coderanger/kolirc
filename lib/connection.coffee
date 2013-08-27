@@ -9,7 +9,7 @@ module.exports = class Connection
   constructor: (@stream, @server) ->
     @kol = new KolClient(@)
     @authenticated = false
-    @lastChat = 0
+    @channels = {}
     carrier.carry @stream, (line) =>
       cmd = @parse(line)
       fn = @["command_#{cmd.command}"]
@@ -74,6 +74,7 @@ module.exports = class Connection
     @send(undefined, 'PONG', @server.host, time)
 
   command_JOIN: (channel) ->
+    return
     rawChannel = channel.substring(1) # Sans #
     @send("#{@username}!~#{@username}@#{@stream.remoteAddress}", 'JOIN', channel)
       .then =>
@@ -95,10 +96,17 @@ module.exports = class Connection
       .then =>
         @send(undefined, 366, @username, channel, ':End of /NAMES list.')
 
+  command_PRIVMSG: (target, msg) ->
+    if target[0] == '#'
+      # Sending to a channel
+      channel = target.substring(1)
+      @sendChat("/#{channel} #{msg}")
+
   authenticate: ->
     @kol.login(@username, @password)
       .then =>
         @authenticated = true
+        @password = '*****'
         @kol.api('status')
       .then (status) =>
         @status = status
@@ -117,16 +125,50 @@ module.exports = class Connection
       .then =>
         @send(undefined, '004', @username, ":KoLIRC")
       .then =>
-        @pollNewMessages()
+        @joinChannels()
       .fail (msg) =>
         console.log("Error: #{msg}")
         @notice("Error: #{msg}")
 
-  pollNewMessages: ->
-    @kol.newChatMessages(@lastChat)
-      .then (chat) =>
-        for msg in chat.msgs
-          name = msg.who.name.replace(/\s+/g, '_')
-          @send("#{name}!~#{name}@#{@server.host}", 'PRIVMSG', "##{msg.channel}", ":#{msg.msg}")
-        @lastChat = chat.last if chat.last
-        Q.delay(chat.delay or 1000).then(=> @pollNewMessages())
+  joinChannels: ->
+    @sendChat('/listen')
+      .then (listen) =>
+        channels = listen.output.split('<br>')
+        # Remove the first and last lines
+        channels.shift()
+        channels.pop()
+        promises = for rawChannel in channels
+          rawChannel = rawChannel.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '')
+          console.log("Joining ##{rawChannel}")
+          channel = new Channel(@, rawChannel)
+          @channels[rawChannel] = channel
+          @bindChannel(channel)
+          @joinChannel(channel)
+        Q.all(promises)
+
+  joinChannel: (channel) ->
+    p1 = @send("#{@username}!~#{@username}@#{@stream.remoteAddress}", 'JOIN', '#'+channel.name)
+    p2 = channel.who(true)
+    Q.all([p1, p2])
+      .spread (sent, who) =>
+        prefixLength = @server.host.length + @username.length + channel.name.length + 11
+        lines = ['']
+        for name of who
+          if lines[lines.length-1].length + name.length + 1 + prefixLength > 510
+            lines.push('')
+          lines[lines.length-1] += " #{name}"
+        promises = for line in lines
+          @send(undefined, 353, @username, '=', '#'+channel.name, ":#{line.substring(1)}")
+        Q.all(promises)
+      .then =>
+        @send(undefined, 366, @username, '#'+channel.name, ':End of /NAMES list.')
+
+  bindChannel: (channel) ->
+    channel
+      .on 'privmsg', (c, user, msg) =>
+        @send(user.origin, 'PRIVMSG', '#'+channel.name, ':'+msg)
+      .on 'join', (c, user) =>
+        @send(user.origin, 'JOIN', '#'+channel.name)
+      .on 'part', (c, user) =>
+        @send(user.origin, 'PART', '#'+channel.name, ':Left channel')
+

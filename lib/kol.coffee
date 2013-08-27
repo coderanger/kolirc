@@ -14,6 +14,16 @@ module.exports = class KolClient
     @urlBase = 'http://www.kingdomofloathing.com/'
     @jar = request.jar()
 
+  request: (url, options = {}) ->
+    options.method ||= 'GET'
+    options.jar = @jar
+    options.url = @urlBase + url
+    request(options)
+      .then ([response, body]) ->
+        throw 'Nightly maintenance' if response.request.path == '/maint.php'
+        #console.log("#{url}: #{body}")
+        [response, body]
+
   login: (username, password) ->
     loginUrl = "#{@urlBase}login.php"
     request.get({url: loginUrl, jar: @jar})
@@ -55,20 +65,17 @@ module.exports = class KolClient
     data.count = count if count
     data.id = id if id
     data.since = since if since
-    request.get({url: "#{@urlBase}api.php?#{querystring.stringify(data)}", jar: @jar})
+    @request("api.php?#{querystring.stringify(data)}")
       .then ([response, body]) ->
-        throw 'Nightly maintenance' if response.request.path == '/maint.php'
         JSON.parse(body)
 
   newChatMessages: (since = 0) ->
-    request.get({url: "#{@urlBase}newchatmessages.php?j=1&lasttime=#{since}", jar: @jar})
+    @request("newchatmessages.php?j=1&lasttime=#{since}")
       .then ([response, body]) ->
-        throw 'Nightly maintenance' if response.request.path == '/maint.php'
         JSON.parse(body)
 
   submitNewChat: (playerId, pwd, msg) ->
     data = {j: '1', playerid: playerId, pwd: pwd, graf: msg}
-    request.get({url: "#{@urlBase}submitnewchat.php?#{querystring.stringify(data)}", jar: @jar})
+    @request("submitnewchat.php?#{querystring.stringify(data)}")
       .then ([response, body]) ->
-        throw 'Nightly maintenance' if response.request.path == '/maint.php'
         JSON.parse(body)
