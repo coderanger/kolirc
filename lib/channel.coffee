@@ -13,6 +13,8 @@ class ChannelPoller
       .then (chat) =>
         console.log("Chat data: #{JSON.stringify(chat)}")
         for msgData in chat.msgs
+          unless msgData.type == 'public' # Not handling private or system for now
+            continue
           channel = @conn.channels[msgData.channel]
           unless msgData.who
             console.log("Who-less message:", msgData)
