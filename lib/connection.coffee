@@ -73,6 +73,12 @@ module.exports = class Connection
   command_PING: (time) ->
     @send(undefined, 'PONG', @server.host, time)
 
+  command_AWAY: ->
+    # no-op, later should reduce polling interval
+
+  command_WHO: ->
+    # no-op
+
   command_JOIN: (channel) ->
     return
     rawChannel = channel.substring(1) # Sans #
