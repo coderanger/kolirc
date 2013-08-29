@@ -60,6 +60,9 @@ module.exports = class KolClient
           .then -> Q.delay(waitTime*60*1000)
           .then -> @login(username, password)
 
+  logout: ->
+    @request('logout.php')
+
   api: (what = 'status', count, id, since) ->
     data = {what: what, for: 'KoLIRC by coderanger'}
     data.count = count if count

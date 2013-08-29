@@ -17,6 +17,10 @@ module.exports = class Connection
         fn.apply(@, cmd.args)
       else
         @send(undefined, 421, cmd.command, ":Unknown command #{cmd.command}")
+    @stream.on('end', => @logout())
+    @stream.on 'error', (err) =>
+      console.log('Socket error:', err.stack)
+      @logout()
 
   parse: (data) ->
     parts = data.trim().split(/[ ]:/)
@@ -55,11 +59,14 @@ module.exports = class Connection
     @password = password
 
   command_NICK: (username) ->
-    @username = username
-    if @password
-      @authenticate()
+    if @authenticated
+      @send(undefined, 484, ":Your connection is restricted")
     else
-      @send(undefined, 437, username, ":Password is required")
+      @username = username
+      if @password
+        @authenticate()
+      else
+        @send(undefined, 437, username, ":Password is required")
 
   command_USER: ->
     # no-op
@@ -78,6 +85,13 @@ module.exports = class Connection
 
   command_WHO: ->
     # no-op
+
+  command_QUIT: ->
+    p1 = @send(undefined, 'ERROR', ':Goodbye')
+    p2 = @logout()
+    Q.all([p1, p2])
+      .then =>
+        @stream.end()
 
   command_JOIN: (channel) ->
     return
@@ -178,3 +192,8 @@ module.exports = class Connection
       .on 'part', (c, user) =>
         @send(user.origin, 'PART', '#'+channel.name, ':Left channel')
 
+  logout: ->
+    clearInterval(@channelPoller.timer) if @channelPoller
+    for name, channel of @channels
+      clearInterval(channel.timer)
+    @kol.logout()

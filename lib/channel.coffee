@@ -5,7 +5,7 @@ User = require('./user')
 class ChannelPoller
   constructor: (@conn) ->
     @last = 0
-    setInterval(@poll.bind(@), 2000)
+    @timer = setInterval(@poll.bind(@), 2000)
 
   poll: ->
     console.log('Polling for messages')
@@ -29,7 +29,7 @@ module.exports = class Channel extends EventEmitter
   constructor: (@conn, @name, @topic) ->
     @users = {}
     @conn.channelPoller ||= new ChannelPoller(@conn)
-    setInterval(@who.bind(@), 10000)
+    @timer = setInterval(@who.bind(@), 10000)
 
   addUser: (rawUsername, silent = false) ->
     username = User.sanitizeName(rawUsername)
