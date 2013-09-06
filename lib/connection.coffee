@@ -123,6 +123,20 @@ module.exports = class Connection
       channel = target.substring(1)
       @sendChat("/#{channel} #{msg}")
 
+  command_LIST: ->
+    @sendChat('/channels')
+      .then (rawChannels) =>
+        channels = rawChannels.output.split('<br>')
+        # Remove the first and last lines
+        channels.shift()
+        channels.pop()
+        promises = for channel in channels
+          channel = channel.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '')
+          @send(undefined, 322, @username, '#'+channel, 0, ':')
+        Q.all(promises)
+      .then =>
+        @send(undefined, 323, @username, ':End of /LIST')
+
   authenticate: ->
     @kol.login(@username, @password)
       .then =>
