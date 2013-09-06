@@ -24,6 +24,7 @@
     "q": "~0.9.6",
     "coffee-script-mapped": "~0.1.4",
     "underscore": "~1.5.1",
-    "moment": "~2.1.0"
+    "moment": "~2.1.0",
+    "ent": "~0.1.0"
   }
 }

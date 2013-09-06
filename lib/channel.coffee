@@ -1,5 +1,7 @@
 EventEmitter = require('events').EventEmitter
 
+ent = require('ent')
+
 User = require('./user')
 
 class ChannelPoller
@@ -22,7 +24,8 @@ class ChannelPoller
           user = channel.addUser(msgData.who.name)
           if user.name == @conn.username
             continue # Don't echo back my own message
-          channel.emit('privmsg', channel, user, msgData.msg)
+          msg = ent.decode(msgData.msg)
+          channel.emit('privmsg', channel, user, msg)
         @last = chat.last if chat.last
 
 module.exports = class Channel extends EventEmitter
