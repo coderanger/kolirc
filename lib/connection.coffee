@@ -117,6 +117,7 @@ module.exports = class Connection
         @send(undefined, 366, @username, channel, ':End of /NAMES list.')
 
   command_PRIVMSG: (target, msg) ->
+    msg = msg.replace(/^\x01ACTION(.*?)\x01$/, '/me$1')
     if target[0] == '#'
       # Sending to a channel
       channel = target.substring(1)
