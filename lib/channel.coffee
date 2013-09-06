@@ -25,7 +25,7 @@ class ChannelPoller
           if user.name == @conn.username
             continue # Don't echo back my own message
           msg = ent.decode(msgData.msg)
-          msg = msg.replace(/^<b><i><a target=mainpane href="showplayer\.php\?who=\d+"><font color="black">[^<]+<\/b><\/font><\/a>(.*)$/, '\x01ACTION$1\x01')
+          msg = msg.replace(/^<b><i><a target=mainpane href="showplayer\.php\?who=\d+"><font color="black">[^<]+<\/b><\/font><\/a>(.*?)<\/i>$/, '\x01ACTION$1\x01')
           channel.emit('privmsg', channel, user, msg)
         @last = chat.last if chat.last
 
