@@ -4,6 +4,28 @@ ent = require('ent')
 
 User = require('./user')
 
+regexpEscape = (s) ->
+  s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
+
+cleanMessage = (msg) ->
+  # Decode HTML entities
+  msg = ent.decode(msg)
+  # Convert /me messages to match IRC format
+  msg = msg.replace(/^<b><i><a target=mainpane href="showplayer\.php\?who=\d+"><font color="black">[^<]+<\/b><\/font><\/a>(.*?)<\/i>$/, '\x01ACTION$1\x01')
+  # Remove the odd comment, possibly an old keepalive system
+  msg = msg.replace(/<!--viva-->/, '')
+  # Clean up link rendering
+  links = []
+  msg = msg.replace /<a target=_blank href="([^"]+)"><font color=blue>\[link\]<\/font><\/a> /g, (match, p1) ->
+    links.push(p1)
+    ''
+  for link in links
+    linkChars = for c in link.split('')
+      regexpEscape(c)
+    linkRe = new RegExp(linkChars.join(' ?'), 'g')
+    msg = msg.replace(linkRe, link)
+  msg
+
 class ChannelPoller
   constructor: (@conn) ->
     @last = 0
@@ -24,9 +46,7 @@ class ChannelPoller
           user = channel.addUser(msgData.who.name)
           if user.name == @conn.username
             continue # Don't echo back my own message
-          msg = ent.decode(msgData.msg)
-          msg = msg.replace(/^<b><i><a target=mainpane href="showplayer\.php\?who=\d+"><font color="black">[^<]+<\/b><\/font><\/a>(.*?)<\/i>$/, '\x01ACTION$1\x01')
-          channel.emit('privmsg', channel, user, msg)
+          channel.emit('privmsg', channel, user, cleanMessage(msgData.msg))
         @last = chat.last if chat.last
 
 module.exports = class Channel extends EventEmitter
